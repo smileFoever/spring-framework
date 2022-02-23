@@ -223,10 +223,16 @@ class ConfigurationClassParser {
 
 
 	protected void processConfigurationClass(ConfigurationClass configClass, Predicate<String> filter) throws IOException {
+		/**
+		 * 根据@Condition这个条件注解来判断是否要跳过解析
+		 */
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
-
+		/**
+		 * 第一次进入的时候configurationClasses为空
+		 * 在此处处理configuration重复import，如果同一个配置类被处理两次，两次都属于被import的则合并导入类，返回，如果配置类不是被导入的，则移除就得使用新的配置类
+		 */
 		ConfigurationClass existingClass = this.configurationClasses.get(configClass);
 		if (existingClass != null) {
 			if (configClass.isImported()) {
@@ -245,6 +251,11 @@ class ConfigurationClassParser {
 		}
 
 		// Recursively process the configuration class and its superclass hierarchy.
+		/**
+		 * 处理配置类，由于配置类可能存在父类（若父类的全类名以java开头的则除外），所有需要将configClass变成sourceClass去解析，然后返回sourceClass的父类
+		 * 如果此时父类为空，则不会进行while循环去解析，如果父类不为空，则会循环去解析父类
+		 * SourceClass的意义：简单的包装类，目的是为了以统一的方式去处理带有注解的类，不管这些类是如何加载的。
+		 */
 		SourceClass sourceClass = asSourceClass(configClass, filter);
 		do {
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass, filter);
@@ -266,7 +277,9 @@ class ConfigurationClassParser {
 	protected final SourceClass doProcessConfigurationClass(
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
-
+		/**
+		 * @Configuration 上有@Component,处理内部类，递归解析
+		 */
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass, filter);

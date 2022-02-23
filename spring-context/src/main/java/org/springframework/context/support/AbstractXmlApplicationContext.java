@@ -86,10 +86,16 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 		// resource loading environment.
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
 		beanDefinitionReader.setResourceLoader(this);
+		/**
+		 * ResourceEntityResolver配置需要加载的spring.schema的路径
+		 */
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
+		/**
+		 * 覆盖该方法可以自定义beanDefinitionReader的某些属性如：setNamespaceHandlerResolver
+		 */
 		initBeanDefinitionReader(beanDefinitionReader);
 		loadBeanDefinitions(beanDefinitionReader);
 	}

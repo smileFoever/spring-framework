@@ -873,11 +873,14 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		// Trigger initialization of all non-lazy singleton beans...
 		for (String beanName : beanNames) {
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+			// 非抽象、单例、非懒加载的
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
+				// 实现了 FactoryBean接口的类的处理
 				if (isFactoryBean(beanName)) {
 					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
 					if (bean instanceof FactoryBean) {
 						FactoryBean<?> factory = (FactoryBean<?>) bean;
+						// 判断这个bean是否是急切初始化
 						boolean isEagerInit;
 						if (System.getSecurityManager() != null && factory instanceof SmartFactoryBean) {
 							isEagerInit = AccessController.doPrivileged(
@@ -894,16 +897,21 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					}
 				}
 				else {
+					// 如果beanName对应的bean不是FactoryBean只是普通的bean，通过beanName获取bean实例
 					getBean(beanName);
 				}
 			}
 		}
 
 		// Trigger post-initialization callback for all applicable beans...
+		// 遍历beanNames触发所有SmartInitializingSingleton的 后初始化回调
 		for (String beanName : beanNames) {
+			// 获取beanName对应的实例
 			Object singletonInstance = getSingleton(beanName);
+			// 判断singletonInstance是否实现了SmartInitializingSingleton接口
 			if (singletonInstance instanceof SmartInitializingSingleton) {
 				SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+				// 触发SmartInitializingSingleton实现类的afterSingletonsInstantiated方法
 				if (System.getSecurityManager() != null) {
 					AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
 						smartSingleton.afterSingletonsInstantiated();

@@ -66,6 +66,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
+ * 此类是一个后置处理器的类，主要功能是参与BeanFactory的建造，主要功能如下：
+ * 1、解析加了@Configuration的配置类
+ * 2、解析@ComponentScan扫描的包
+ * 3、解析@ComponentScans扫描的包
+ * 4、解析@Import注解
  * {@link BeanFactoryPostProcessor} used for bootstrapping processing of
  * {@link Configuration @Configuration} classes.
  *
@@ -223,6 +228,10 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 */
 	@Override
 	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+		/**
+		 * 此方法在AbstractApplicationContext中Spring容器创建的关键方法refresh中beanFactoryPostProcessor处理实现了beanDefinitionRegistryPostProcessor
+		 * 处理时调用，一下判断是为了保障统一registry只处理一次
+		 */
 		int registryId = System.identityHashCode(registry);
 		if (this.registriesPostProcessed.contains(registryId)) {
 			throw new IllegalStateException(
@@ -234,6 +243,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 		this.registriesPostProcessed.add(registryId);
 
+		/**
+		 * 处理配置类的bean定义信息
+		 */
 		processConfigBeanDefinitions(registry);
 	}
 
@@ -266,14 +278,25 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
 		List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
 		String[] candidateNames = registry.getBeanDefinitionNames();
-
+		/**
+		 * 遍历已经加载的beanDefinition(包含文件配置的，注解扫描的)找出有注解的beanDefinition放入后续待处理的数组
+		 */
 		for (String beanName : candidateNames) {
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
+			/**
+			 * beanDefinition中包含configurationClass这个属性表示已经被当做配置类处理过了
+			 */
 			if (beanDef.getAttribute(ConfigurationClassUtils.CONFIGURATION_CLASS_ATTRIBUTE) != null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Bean definition has already been processed as a configuration class: " + beanDef);
 				}
 			}
+			/**
+			 * 判断当前BeanDefinition是否有注解或者是Spring内部的类（并且4种类排除），并为BeanDefinition设置属性为lite或者full（），此处设置属性值是为了后续调用
+			 * 如果Configuration配置proxyBeanMethods代理为true则为full
+			 * 如果加了@Bean、@Component、@ComponentScan、@Import、@ImportResource注解，则设置为lite
+			 * 如果配置类上被@Order注解标注，则设置BeanDefinition的order属性值
+			 */
 			else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
 				configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
 			}
@@ -292,6 +315,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		});
 
 		// Detect any custom bean name generation strategy supplied through the enclosing application context
+		/**
+		 * 设置bean的命名生成器
+		 */
 		SingletonBeanRegistry sbr = null;
 		if (registry instanceof SingletonBeanRegistry) {
 			sbr = (SingletonBeanRegistry) registry;
@@ -317,6 +343,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			/**
+			 * 解析带有@Controller、@Import、@ImportResource、@ComponentScan、@ComponentScans、@Bean的Definition
+			 */
 			parser.parse(candidates);
 			parser.validate();
 

@@ -124,9 +124,18 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
+			/**
+			 * BeanFactory是获取spring bean 的根接口
+			 */
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			beanFactory.setSerializationId(getId());
+			/**
+			 * 可以通过重写此方法来个性化配置BeanFactory是否支持循环依赖和Bean覆盖
+			 */
 			customizeBeanFactory(beanFactory);
+			/**
+			 * 重点方法加载Bean定义信息
+			 */
 			loadBeanDefinitions(beanFactory);
 			this.beanFactory = beanFactory;
 		}

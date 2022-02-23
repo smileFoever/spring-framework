@@ -60,11 +60,17 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
+		// bd对象定义中，是否包含MethodOverride列表，spring中有两个标签参数会产生MethodOverrides分别是lookup-method、replace-method
+		// 没有MethodOverrides对象，可以直接实例化
 		if (!bd.hasMethodOverrides()) {
+			// 实例化对象的构造方法
 			Constructor<?> constructorToUse;
+			// 锁定对象，使得获得实例化构造方法线程安全
 			synchronized (bd.constructorArgumentLock) {
+				// 查看bd对象中是否含有构造方法
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse == null) {
+					// 从bd中获取beanClass
 					final Class<?> clazz = bd.getBeanClass();
 					if (clazz.isInterface()) {
 						throw new BeanInstantiationException(clazz, "Specified class is an interface");
@@ -77,6 +83,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 						else {
 							constructorToUse = clazz.getDeclaredConstructor();
 						}
+						// 获取到构造器之后将构造器赋值给bd中的属性
 						bd.resolvedConstructorOrFactoryMethod = constructorToUse;
 					}
 					catch (Throwable ex) {
@@ -84,10 +91,11 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			// 通过反射生成具体的实例化对象
 			return BeanUtils.instantiateClass(constructorToUse);
 		}
 		else {
-			// Must generate CGLIB subclass.
+			// Must generate CGLIB subclass. 必须生成cglib子类
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}

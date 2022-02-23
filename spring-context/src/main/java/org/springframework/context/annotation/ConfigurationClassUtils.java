@@ -91,6 +91,10 @@ abstract class ConfigurationClassUtils {
 		}
 
 		AnnotationMetadata metadata;
+		/**
+		 * 通过注解注入的beanDefinition都是AnnotatedGenericBeanDefinition实现了AnnotatedBeanDefinition
+		 * Spring内部的beanDefinition是RootBeanDefinition实现了AbstractBeanDefinition
+		 */
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
@@ -100,6 +104,9 @@ abstract class ConfigurationClassUtils {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
 			Class<?> beanClass = ((AbstractBeanDefinition) beanDef).getBeanClass();
+			/**
+			 * 以下四种类型是不能当做配置类的：BeanFactoryPostProcessor、BeanPostProcessor、AopInfrastructureBean、EventListenerFactory
+			 */
 			if (BeanFactoryPostProcessor.class.isAssignableFrom(beanClass) ||
 					BeanPostProcessor.class.isAssignableFrom(beanClass) ||
 					AopInfrastructureBean.class.isAssignableFrom(beanClass) ||
@@ -123,6 +130,9 @@ abstract class ConfigurationClassUtils {
 		}
 
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+		/**
+		 * 如果bean被Configuration注解标注，且属性proxyBeanMethods为false（使用代理模式），则将bean标记为full
+		 */
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
