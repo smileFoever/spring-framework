@@ -253,6 +253,18 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		this.injectionMetadataCache.remove(beanName);
 	}
 
+	/**
+	 * 获取构造器集合
+	 * 如果有多个Autowired，required为true，不管有没有默认构造方法，会抛异常
+	 * 如果只有一个Autowired，required为false，没有默认构造方法会报警告
+	 * --此条不确定：如果没有Autowired，定义了两个及以上有参数构造方法，没有无参构造方法，且不是通过xml配置文件进行加载，通过注解，就会报错
+	 * 其他情况都可以，但是以有Autowired的构造方法优先，然后才是默认构造方法
+	 * @param beanClass
+	 * @param beanName
+	 * @return
+	 * @throws BeanCreationException
+	 */
+
 	@Override
 	@Nullable
 	public Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, final String beanName)
